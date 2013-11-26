@@ -32,6 +32,13 @@ Usage examples
 ```bash
 $ knife bootstrap NODE-NAME \
   --ssh-user USER \
+  --json-attributes '
+    { "myphpsite": {
+      "version": "3.7.1",
+      "database": {
+        "password": "my-s3cr3t-p4ss"
+      }
+    } }' \
   --run-list "recipe[app-myphpsite]" \
   --sudo
 ```
@@ -48,13 +55,25 @@ $ knife ec2 server create \
   --groups testing \
   --node-name app-myphpsite-1 \
   -T Name=app-myphpsite-1 \
+  --json-attributes '
+    { "myphpsite": {
+      "version": "3.7.1",
+      "database": {
+        "password": "my-s3cr3t-p4ss"
+      }
+    } }' \
   --run-list 'recipe[app-myphpsite]'
 ```
 
 Attributes
 ==========
 
-`node['myphpsite']['version']` - Worpress version to install (defaults to "3.5.1")
+* `node['myphpsite']['database']['name']` - MySQL database name to create (defaults to "myphpsite")
+* `node['myphpsite']['database']['user']` - MySQL user to create (defaults to "myphpsite-user")
+* `node['myphpsite']['database']['password']` - MySQL password (not defined by default, needs to be set)
+* `node['myphpsite']['version']` - Worpress version to install (defaults to "3.5.1")
+* `node['myphpsite']['www_dir']` - Root directory path (defaults to "/var/www")
+* `node['myphpsite']['server_name']` - Domain, hostname or a valid address (it is calculated from `ohai` by default, recommended to be set)
 
 Recipes
 =======

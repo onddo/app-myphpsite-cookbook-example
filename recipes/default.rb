@@ -23,6 +23,13 @@ include_recipe 'apache2::mod_php5'
 include_recipe 'database::mysql'
 include_recipe 'mysql::server'
 
+# Comprobamos que la contraseña está bien configurada
+
+unless node['myphpsite']['database']['password'].kind_of?(String) and
+       node['myphpsite']['database']['password'].length > 8
+  raise "You must set the attribute `node['myphpsite']['database']['password']` to a secure password string."
+end
+
 # Instalamos php-mysql
 
 case node['platform_family']
@@ -49,17 +56,17 @@ mysql_connection_info = {
 }
 
 # Creamos la base de datos
-mysql_database 'myphpsite' do
+mysql_database node['myphpsite']['database']['name'] do
   connection mysql_connection_info
   action :create
 end
 
 # Creamos el usuario de MySQL
-mysql_database_user 'myphpsite-user' do
+mysql_database_user node['myphpsite']['database']['user'] do
   connection mysql_connection_info
-  database_name 'myphpsite'
+  database_name node['myphpsite']['database']['name']
   host 'localhost'
-  password 'my-s3cr3t-p4ss'
+  password node['myphpsite']['database']['password']
   privileges [:all]
   action :grant
 end
@@ -72,7 +79,7 @@ end
 # end
 # 
 # execute 'tar xzf /tmp/wordpress.tar.gz' do
-#   cwd '/var/www'
+#   cwd node['myphpsite']['www_dir']
 # end
 # 
 # execute 'rm /tmp/wordpress.tar.gz'
@@ -93,18 +100,18 @@ deploy '/opt/wordpress' do
   symlinks.clear
 end
 
-link '/var/www/wordpress' do
+link "#{node['myphpsite']['www_dir']}/wordpress" do
   to '/opt/wordpress/current'
 end
 
 # Creamos los ficheros de configuración que necesita nuestra aplicación
 
-template '/var/www/wordpress/wp-config.php' do
+template "#{node['myphpsite']['www_dir']}/wordpress/wp-config.php" do
   owner node['apache']['user']
   variables(
-    :mysql_db   => 'myphpsite',
-    :mysql_user => 'myphpsite-user',
-    :mysql_pass => 'my-s3cr3t-p4ss'
+    :mysql_db   => node['myphpsite']['database']['name'],
+    :mysql_user => node['myphpsite']['database']['user'],
+    :mysql_pass => node['myphpsite']['database']['password']
   )
 end
 
@@ -112,8 +119,8 @@ end
 
 web_app 'myphpsite' do
   cookbook 'apache2'
-  docroot '/var/www/wordpress'
-  server_name node['cloud']['public_hostname'] # pon aquí un hostname válido para tu máquina
+  docroot "#{node['myphpsite']['www_dir']}/wordpress"
+  server_name node['myphpsite']['server_name']
   server_aliases []
   port '80'
   enable true
